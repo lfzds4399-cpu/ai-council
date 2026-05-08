@@ -133,6 +133,18 @@ Not a fit:
 
 Issues and PRs welcome. See pinned `help wanted` issues for low-effort first contributions: a vendored LLM-voter helper, additional `MeetingStore` backends (SQLite, Postgres), or a new domain example.
 
+## Sibling projects
+
+Other small, single-author harnesses I publish under [@lfzds4399-cpu](https://github.com/lfzds4399-cpu) — same MIT, same opinionated taste:
+
+| Repo | One line |
+|---|---|
+| [**domain-harness**](https://github.com/lfzds4399-cpu/domain-harness) | Real-world consumer: every shortlisted domain is judged by a Claude + DeepSeek council before any registrar API is called |
+| [**sitige-harness**](https://github.com/lfzds4399-cpu/sitige-harness) | Pipeline runtime — drop ai-council in as a validator stage |
+| [**voice2ai**](https://github.com/lfzds4399-cpu/voice2ai) | Hands-free dictation for Windows — push-to-talk, 4 STT providers, 10+ chat apps |
+
+If ai-council is useful, ⭐ the repo — it's the cheapest signal and it actually moves the needle.
+
 ## License
 
 [MIT](LICENSE)
