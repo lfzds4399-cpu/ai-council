@@ -8,6 +8,8 @@
 
 > 🌏 [中文 README](README.zh-CN.md)
 
+![ai-council demo (animated illustration)](./docs/ai-council-demo.gif)
+
 ## What this is
 
 A tiny, dependency-free framework for **letting several "voters" decide together** — useful when one model or one rule is not trustworthy enough on its own. You assemble a `Council` from any number of voters, ask it to deliberate on a proposal, and get back a `Decision`.

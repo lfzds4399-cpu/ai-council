@@ -28,3 +28,9 @@ Thumbs.db
 # Local meeting logs from running examples
 *.json.log
 council_meetings.json
+
+# marketing copy (private launch playbook)
+marketing/
+
+# Remotion demo render workspace (gitignored, only the rendered gif ships in docs/)
+.remotion-demo/
