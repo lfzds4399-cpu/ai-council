@@ -30,7 +30,7 @@ CI runs the same suite on Python 3.11 / 3.12 / 3.13.
 
 ## Adding a new voter helper
 
-`function_voter` and `weighted_voter` cover the common cases. New voter helpers belong in `ai_council/voters.py` and must:
+`function_voter(name, fn, *, weight=1.0)` covers the common case (any callable becomes a `Voter`, with optional weight). New voter helpers belong in `ai_council/voter.py` and must:
 
 1. Return a `Vote` (never raise on rejection — return `Vote(approve=False, ...)` instead).
 2. Be deterministic given the same `(proposal, context, peers)` triple. If you need an LLM, accept a callable so tests can pass a stub.
