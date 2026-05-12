@@ -141,8 +141,9 @@ Other small, single-author harnesses I publish under [@lfzds4399-cpu](https://gi
 
 | Repo | One line |
 |---|---|
+| [**claude-screen-mcp**](https://github.com/lfzds4399-cpu/claude-screen-mcp) | MCP server letting Claude see your screen (Windows + macOS + Linux) — OCR + smart vision-diff |
 | [**domain-harness**](https://github.com/lfzds4399-cpu/domain-harness) | Real-world consumer: every shortlisted domain is judged by a Claude + DeepSeek council before any registrar API is called |
-| [**sitige-harness**](https://github.com/lfzds4399-cpu/sitige-harness) | Pipeline runtime — drop ai-council in as a validator stage |
+| [**methods-harness**](https://github.com/lfzds4399-cpu/methods-harness) | SymPy-verified bilingual lesson pipeline for high-school calculus — same harness pattern |
 | [**voice2ai**](https://github.com/lfzds4399-cpu/voice2ai) | Hands-free dictation for Windows — push-to-talk, 4 STT providers, 10+ chat apps |
 
 If ai-council is useful, ⭐ the repo — it's the cheapest signal and it actually moves the needle.
