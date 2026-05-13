@@ -2,6 +2,8 @@
 
 > Multi-voter consensus framework for LLM and heuristic decisions — composable Voters, weighted votes, optional veto, persistent meeting log.
 
+**Stop rolling your own multi-LLM voting code.** If you have ever wired up "ask GPT-4 and Claude and a regex, then count the votes" inside a moderation pipeline, an agent router, or a code-review bot — this is the primitive you wanted. Zero runtime deps, ~200 LOC, MIT.
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
 ![Status](https://img.shields.io/badge/status-beta-orange)
@@ -10,15 +12,46 @@
 
 ![ai-council demo (animated illustration)](./docs/ai-council-demo.gif)
 
+## 10-line taste
+
+```python
+from ai_council import Council, Vote, function_voter
+
+def gpt4_voter(p, ctx, peers):    return Vote("gpt4",   approve=p["safe_gpt4"],   score=90)
+def claude_voter(p, ctx, peers):  return Vote("claude", approve=p["safe_claude"], score=85)
+def regex_voter(p, ctx, peers):
+    bad = "kill" in p["text"].lower()
+    return Vote("regex", approve=not bad, score=0 if bad else 100, veto=bad)  # hard red line
+
+council = Council([function_voter("gpt4", gpt4_voter),
+                   function_voter("claude", claude_voter),
+                   function_voter("regex", regex_voter)], threshold=2)
+decision = council.deliberate({"text": "...", "safe_gpt4": True, "safe_claude": True})
+print(decision.approved, decision.final_score)  # True 91.67
+```
+
+That is the whole API surface. No subclassing, no config files, no orchestrator process.
+
 ## What this is
 
 A tiny, dependency-free framework for **letting several "voters" decide together** — useful when one model or one rule is not trustworthy enough on its own. You assemble a `Council` from any number of voters, ask it to deliberate on a proposal, and get back a `Decision`.
 
 Each `Voter` is just an object with a `name`, a `weight`, and a `vote(proposal, context, peers)` method. Inside, the voter can call an LLM, run a regex, hit a database, or ask a friend — the framework only cares about the `Vote` it returns.
 
+## With ai-council vs. without
+
+| Without ai-council | With ai-council |
+|---|---|
+| 80 lines of `if gpt_says and claude_says and not blocklist:` glue per project | 1 `Council(...)` line + N small voter functions |
+| Threshold logic re-invented (and bugged) every time | `threshold=2` or `threshold=0.6` — int = absolute, float = ratio |
+| Veto / hard-policy red lines bolted on with extra ifs | `Vote(..., veto=True)` from any voter blocks approval |
+| Weighting senior voters means rewriting the aggregator | `function_voter("senior", fn, weight=2.0)` |
+| Audit log is a `print()` you forgot to wire to a file | `JsonMeetingStore("meetings.jsonl")` — every decision persisted |
+| One flaky LLM call crashes the whole pipeline | Exceptions are captured as `approve=False, score=0` (or `strict=True` to re-raise) |
+
 ## Why a separate framework
 
-Multi-LLM ensembles and human-AI review boards keep getting re-implemented inside each project (trading bots, moderation pipelines, code review tools, …). Each implementation tangles together:
+Multi-LLM ensembles and human-AI review boards keep getting re-implemented inside each project (trading bots, moderation pipelines, code review tools, agent routers). Each implementation tangles together:
 
 - **What** is being decided (the proposal shape)
 - **Who** votes (the voters)
@@ -69,6 +102,28 @@ print(decision.approved, decision.final_score)
 # True 85.0
 ```
 
+### LLM voter — same shape
+
+Any object with `name`, `weight`, and a `vote(...)` method satisfies the `Voter` protocol — no inheritance needed. Drop your LLM client in directly:
+
+```python
+class ClaudeVoter:
+    name = "claude"
+    weight = 1.5
+
+    def __init__(self, client): self.client = client
+
+    def vote(self, proposal, context, peers):
+        reply = self.client.messages.create(
+            model="claude-sonnet-4-5",
+            messages=[{"role": "user", "content": f"Approve this? {proposal}"}],
+        )
+        approve = "yes" in reply.content[0].text.lower()
+        return Vote(voter="claude", approve=approve, score=90 if approve else 10)
+```
+
+The council does not care whether the voter is calling Anthropic, OpenAI, a SymPy verifier, or a sentiment classifier.
+
 ## Concepts
 
 | Concept       | What it is                                                                 |
@@ -100,6 +155,15 @@ If a voter raises an exception, by default it is logged and recorded as a `score
 council = Council(voters, threshold=2, strict=True)  # fail loudly in dev
 ```
 
+### Audit log
+
+```python
+from ai_council import JsonMeetingStore
+council = Council(voters, threshold=2, store=JsonMeetingStore("meetings.jsonl"))
+```
+
+Every `deliberate()` call now persists the full `Decision` — proposal, votes, reasons, timestamp — so you can answer "why did we approve that PR / publish that post / buy that domain on 2025-04-12" months later.
+
 ## Examples
 
 Three runnable examples in [`examples/`](examples) — each one wires up three voters for a different decision:
@@ -116,8 +180,10 @@ python examples/domain_valuation.py
 
 Good fits:
 
-- **Multi-LLM ensembles** where you want each model's vote tracked + auditable
+- **Multi-LLM ensembles** where you want each model's vote tracked + auditable (GPT + Claude + Gemini deciding together)
+- **Agent routing / tool-call gating** — multiple critics vote before an agent takes an irreversible action
 - **Moderation / approval flows** with a mix of model and rule-based gates
+- **Code-review bots** where correctness, style, and security each get a voter
 - **Decision logs** where you need to explain why a proposal passed or failed
 - **Sensitive automation** where a single point of failure is unacceptable
 
