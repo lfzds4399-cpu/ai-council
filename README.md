@@ -141,6 +141,7 @@ Other small, single-author harnesses I publish under [@lfzds4399-cpu](https://gi
 
 | Repo | One line |
 |---|---|
+| [**harness-engineering**](https://github.com/lfzds4399-cpu/harness-engineering) | The pattern (not a framework) that ai-council drops into as a validator stage — agents + validators + manifest, validated across 6+ projects |
 | [**claude-screen-mcp**](https://github.com/lfzds4399-cpu/claude-screen-mcp) | MCP server letting Claude see your screen (Windows + macOS + Linux) — OCR + smart vision-diff |
 | [**domain-harness**](https://github.com/lfzds4399-cpu/domain-harness) | Real-world consumer: every shortlisted domain is judged by a Claude + DeepSeek council before any registrar API is called |
 | [**methods-harness**](https://github.com/lfzds4399-cpu/methods-harness) | SymPy-verified bilingual lesson pipeline for high-school calculus — same harness pattern |
