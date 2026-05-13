@@ -4,7 +4,8 @@
 
 Please **do not** open a public GitHub issue for security problems.
 
-Email: **lfzds4399@gmail.com** with subject prefix `[security] ai-council:`.
+Use GitHub's private security advisory channel:
+**https://github.com/lfzds4399-cpu/ai-council/security/advisories/new**
 
 Include: vulnerable version, repro steps, impact assessment, and your contact preference.
 

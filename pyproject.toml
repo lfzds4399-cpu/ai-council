@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Multi-voter consensus framework for LLM and heuristic decisions — composable Voters, weighted votes, optional veto, persistent meeting log."
 readme = "README.md"
 requires-python = ">=3.11"
-authors = [{ name = "Lin", email = "lfzds4399@gmail.com" }]
+authors = [{ name = "lfzds4399-cpu", email = "272075207+lfzds4399-cpu@users.noreply.github.com" }]
 license = { text = "MIT" }
 keywords = ["consensus", "voting", "llm", "ensemble", "decision", "moderation"]
 classifiers = [
