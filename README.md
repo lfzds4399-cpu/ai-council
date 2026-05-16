@@ -7,8 +7,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
 ![Status](https://img.shields.io/badge/status-beta-orange)
+[![Launch article](https://img.shields.io/badge/dev.to-launch_article-black?logo=dev.to)](https://dev.to/lfzds4399cpu/stop-reinventing-ask-gpt-4-and-claude-and-a-regex-then-count-the-votes-5fkd)
 
-> 🌏 [中文 README](README.zh-CN.md)
+> 🌏 [中文 README](README.zh-CN.md) · ✍ [Launch article on dev.to](https://dev.to/lfzds4399cpu/stop-reinventing-ask-gpt-4-and-claude-and-a-regex-then-count-the-votes-5fkd)
 
 ![ai-council demo (animated illustration)](./docs/ai-council-demo.gif)
 
