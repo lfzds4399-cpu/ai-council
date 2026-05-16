@@ -1,183 +1,119 @@
 # ai-council
 
-> Multi-voter consensus framework for LLM and heuristic decisions — composable Voters, weighted votes, optional veto, persistent meeting log.
-
-A small, dependency-free Python library for combining several "voters" (LLM calls, regex checks, classifiers, human approvers) into a single auditable decision. MIT, Python 3.11+, zero runtime dependencies.
+Run several voters on the same proposal and get back one decision plus the
+raw vote log. A voter is just a function, a rules check, a model call, or a
+human-review queue. No runtime dependencies in the core package.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
-![Status](https://img.shields.io/badge/status-beta-orange)
 
-[中文 README](README.zh-CN.md)
-
-![ai-council demo (animated illustration)](./docs/ai-council-demo.gif)
+[Chinese README](README.zh-CN.md)
 
 ## Minimal example
 
 ```python
 from ai_council import Council, Vote, function_voter
 
-def gpt4_voter(p, ctx, peers):    return Vote("gpt4",   approve=p["safe_gpt4"],   score=90)
-def claude_voter(p, ctx, peers):  return Vote("claude", approve=p["safe_claude"], score=85)
-def regex_voter(p, ctx, peers):
-    bad = "kill" in p["text"].lower()
-    return Vote("regex", approve=not bad, score=0 if bad else 100, veto=bad)  # hard red line
 
-council = Council([function_voter("gpt4", gpt4_voter),
-                   function_voter("claude", claude_voter),
-                   function_voter("regex", regex_voter)], threshold=2)
-decision = council.deliberate({"text": "...", "safe_gpt4": True, "safe_claude": True})
-print(decision.approved, decision.final_score)  # True 91.67
+def policy_voter(proposal, context, peers):
+    allowed = "blocked" not in proposal["text"].lower()
+    return Vote(voter="policy", approve=allowed, score=100 if allowed else 0, veto=not allowed)
+
+
+def quality_voter(proposal, context, peers):
+    enough_detail = len(proposal["text"]) >= 20
+    return Vote(voter="quality", approve=enough_detail, score=80 if enough_detail else 30)
+
+
+council = Council(
+    [
+        function_voter("policy", policy_voter),
+        function_voter("quality", quality_voter, weight=1.5),
+    ],
+    threshold=2,
+)
+
+decision = council.deliberate({"text": "Publish this reviewed changelog entry."})
+print(decision.approved, decision.final_score)
 ```
 
-## Overview
+## Concepts
 
-A `Council` holds a list of `Voter` objects and an approval threshold. Calling `deliberate(proposal)` runs every voter, aggregates the result, and returns a `Decision`.
-
-A `Voter` is any object with a `name`, a `weight`, and a `vote(proposal, context, peers)` method. The body of `vote` can call an LLM, run a regex, hit a database, or ask a human queue — the framework only cares about the `Vote` returned.
-
-The library separates four concerns that are usually tangled together: what is being decided, who votes, how votes combine (threshold / weights / veto), and where the audit log lives.
+| Concept | Purpose |
+|---|---|
+| `Voter` | Anything with `name`, `weight`, and `vote(proposal, context, peers)`. |
+| `Vote` | One voter result: `approve`, `score`, `reason`, and optional `veto`. |
+| `Council` | Runs voters, applies threshold, handles vetoes, and returns a `Decision`. |
+| `Decision` | Aggregated result with raw votes and timestamp. |
+| `MeetingStore` | Optional persistence for decisions, such as `JsonMeetingStore`. |
 
 ## Install
 
 ```bash
-pip install ai-council              # once on PyPI
-# or for now:
 pip install git+https://github.com/lfzds4399-cpu/ai-council.git
 ```
 
-Requires Python 3.11+. Zero runtime dependencies.
+Requires Python 3.11 or newer.
 
-## 60-second example
+## Thresholds, weights, and vetoes
+
+`threshold=2` means at least two voters must approve. `threshold=0.6` means at
+least 60 percent of voters must approve.
+
+`weight` affects the final score only. It does not reduce the number of
+approvals required by the threshold.
+
+`veto=True` blocks approval even when the threshold is met. Use it for hard
+policy gates such as failed authentication, unsafe content, broken migrations,
+or missing security review.
+
+## Error handling
+
+If a voter raises an exception, the default behavior records a failed vote
+instead of crashing the whole council. Use `strict=True` during development when
+you want exceptions to surface immediately.
 
 ```python
-from ai_council import Council, Vote, function_voter
-
-def cheap_voter(proposal, context, peers):
-    cheap = proposal["price_usd"] < 100
-    return Vote(voter="cheap", approve=cheap, score=80 if cheap else 20)
-
-def reviewed_voter(proposal, context, peers):
-    rated = proposal.get("rating", 0) >= 4.5
-    return Vote(voter="reviewed", approve=rated, score=85 if rated else 30)
-
-def stocked_voter(proposal, context, peers):
-    in_stock = proposal.get("stock", 0) > 0
-    return Vote(voter="stocked", approve=in_stock, score=90 if in_stock else 0,
-                veto=not in_stock)  # out of stock → hard veto
-
-council = Council(
-    [
-        function_voter("cheap", cheap_voter),
-        function_voter("reviewed", reviewed_voter),
-        function_voter("stocked", stocked_voter),
-    ],
-    threshold=2,                    # 2-of-3 must approve
-)
-
-decision = council.deliberate({"price_usd": 79, "rating": 4.7, "stock": 12})
-print(decision.approved, decision.final_score)
-# True 85.0
+council = Council(voters, threshold=2, strict=True)
 ```
 
-### LLM voter — same shape
-
-Any object with `name`, `weight`, and a `vote(...)` method satisfies the `Voter` protocol — no inheritance needed. Drop your LLM client in directly:
+## Audit log
 
 ```python
-class ClaudeVoter:
-    name = "claude"
-    weight = 1.5
+from ai_council import Council, JsonMeetingStore
 
-    def __init__(self, client): self.client = client
-
-    def vote(self, proposal, context, peers):
-        reply = self.client.messages.create(
-            model="claude-sonnet-4-5",
-            messages=[{"role": "user", "content": f"Approve this? {proposal}"}],
-        )
-        approve = "yes" in reply.content[0].text.lower()
-        return Vote(voter="claude", approve=approve, score=90 if approve else 10)
-```
-
-The council does not care whether the voter is calling Anthropic, OpenAI, a SymPy verifier, or a sentiment classifier.
-
-## Concepts
-
-| Concept       | What it is                                                                 |
-|---------------|----------------------------------------------------------------------------|
-| `Voter`       | Anything with `name`, `weight`, and a `vote(proposal, context, peers)` method |
-| `Vote`        | One voter's verdict: `approve` flag, `score` (0-100), reasons, optional `veto` |
-| `Council`     | Holds a list of voters and the threshold; runs `deliberate(proposal)`      |
-| `Decision`    | Aggregated outcome: `approved`, `final_score`, raw votes, timestamp        |
-| `MeetingStore`| Optional persistence (`JsonMeetingStore` ships, write your own for DB)     |
-
-### Threshold
-
-- `threshold=2` — at least 2 voters must approve (absolute count)
-- `threshold=0.6` — at least 60% (rounded up) must approve (ratio)
-
-### Veto
-
-Any voter can return `Vote(..., veto=True)`. A veto blocks approval **even if** the threshold is met. Use this for hard policy red lines (CSAM, unauthenticated payment, broken migration) where no consensus should override.
-
-### Weighted score
-
-`final_score` is the **weighted mean** of vote scores (the threshold check is unweighted — it's about how many voters approve). Boost a senior voter's influence with `weight=2.0` without giving them an outright veto.
-
-### Defensive voter handling
-
-If a voter raises an exception, by default it is logged and recorded as a `score=0, approve=False` vote — one flaky LLM call should not crash the council. Pass `strict=True` to re-raise instead.
-
-```python
-council = Council(voters, threshold=2, strict=True)  # fail loudly in dev
-```
-
-### Audit log
-
-```python
-from ai_council import JsonMeetingStore
 council = Council(voters, threshold=2, store=JsonMeetingStore("meetings.jsonl"))
 ```
 
-Every `deliberate()` call now persists the full `Decision` — proposal, votes, reasons, timestamp — so you can answer "why did we approve that PR / publish that post / buy that domain on 2025-04-12" months later.
+Each call to `deliberate()` persists the proposal, vote details, reasons, and
+timestamp, so a decision can be reviewed later.
 
 ## Examples
 
-Three runnable examples in [`examples/`](examples) — each one wires up three voters for a different decision:
+Runnable examples live in [`examples/`](examples):
 
-- [`domain_valuation.py`](examples/domain_valuation.py) — should we buy this domain? (SEO + brand + resale comp)
-- [`code_review.py`](examples/code_review.py) — should we merge this PR? (correctness + style + readability)
-- [`content_moderation.py`](examples/content_moderation.py) — should we publish this post? (policy + toxicity + reputation)
+- [`domain_valuation.py`](examples/domain_valuation.py)
+- [`code_review.py`](examples/code_review.py)
+- [`content_moderation.py`](examples/content_moderation.py)
 
 ```bash
 python examples/domain_valuation.py
 ```
 
-## Where it fits
+## Development
 
-Good fits:
+```bash
+python -m pip install -e ".[dev]"
+python -m pytest -q
+python -m ruff check .
+```
 
-- **Multi-LLM ensembles** where you want each model's vote tracked + auditable (GPT + Claude + Gemini deciding together)
-- **Agent routing / tool-call gating** — multiple critics vote before an agent takes an irreversible action
-- **Moderation / approval flows** with a mix of model and rule-based gates
-- **Code-review bots** where correctness, style, and security each get a voter
-- **Decision logs** where you need to explain why a proposal passed or failed
-- **Sensitive automation** where a single point of failure is unacceptable
+## When to use it
 
-Not a fit:
+Reach for `ai-council` when more than one check has to sign off on the same
+proposal and you want the per-voter log saved for review.
 
-- One-call LLM judgements (just call the model)
-- Reinforcement-learning style outcomes (no reward propagation here)
-- Markets or auctions (use a price-clearing mechanism, not voting)
-
-## Status
-
-**Beta** — API surface is small and tested, but minor versions may still tweak names. Pin `ai-council==0.1.*` if you build on top.
-
-## Contributing
-
-Issues and PRs welcome. See pinned `help wanted` issues for low-effort first contributions: a vendored LLM-voter helper, additional `MeetingStore` backends (SQLite, Postgres), or a new domain example.
+Skip it if a single model call or single rule is enough.
 
 ## License
 
