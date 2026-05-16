@@ -2,18 +2,17 @@
 
 > Multi-voter consensus framework for LLM and heuristic decisions — composable Voters, weighted votes, optional veto, persistent meeting log.
 
-**Stop rolling your own multi-LLM voting code.** If you have ever wired up "ask GPT-4 and Claude and a regex, then count the votes" inside a moderation pipeline, an agent router, or a code-review bot — this is the primitive you wanted. Zero runtime deps, ~200 LOC, MIT.
+A small, dependency-free Python library for combining several "voters" (LLM calls, regex checks, classifiers, human approvers) into a single auditable decision. MIT, Python 3.11+, zero runtime dependencies.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
 ![Status](https://img.shields.io/badge/status-beta-orange)
-[![Launch article](https://img.shields.io/badge/dev.to-launch_article-black?logo=dev.to)](https://dev.to/lfzds4399cpu/stop-reinventing-ask-gpt-4-and-claude-and-a-regex-then-count-the-votes-5fkd)
 
-> 🌏 [中文 README](README.zh-CN.md) · ✍ [Launch article on dev.to](https://dev.to/lfzds4399cpu/stop-reinventing-ask-gpt-4-and-claude-and-a-regex-then-count-the-votes-5fkd)
+[中文 README](README.zh-CN.md)
 
 ![ai-council demo (animated illustration)](./docs/ai-council-demo.gif)
 
-## 10-line taste
+## Minimal example
 
 ```python
 from ai_council import Council, Vote, function_voter
@@ -31,35 +30,13 @@ decision = council.deliberate({"text": "...", "safe_gpt4": True, "safe_claude": 
 print(decision.approved, decision.final_score)  # True 91.67
 ```
 
-That is the whole API surface. No subclassing, no config files, no orchestrator process.
+## Overview
 
-## What this is
+A `Council` holds a list of `Voter` objects and an approval threshold. Calling `deliberate(proposal)` runs every voter, aggregates the result, and returns a `Decision`.
 
-A tiny, dependency-free framework for **letting several "voters" decide together** — useful when one model or one rule is not trustworthy enough on its own. You assemble a `Council` from any number of voters, ask it to deliberate on a proposal, and get back a `Decision`.
+A `Voter` is any object with a `name`, a `weight`, and a `vote(proposal, context, peers)` method. The body of `vote` can call an LLM, run a regex, hit a database, or ask a human queue — the framework only cares about the `Vote` returned.
 
-Each `Voter` is just an object with a `name`, a `weight`, and a `vote(proposal, context, peers)` method. Inside, the voter can call an LLM, run a regex, hit a database, or ask a friend — the framework only cares about the `Vote` it returns.
-
-## With ai-council vs. without
-
-| Without ai-council | With ai-council |
-|---|---|
-| 80 lines of `if gpt_says and claude_says and not blocklist:` glue per project | 1 `Council(...)` line + N small voter functions |
-| Threshold logic re-invented (and bugged) every time | `threshold=2` or `threshold=0.6` — int = absolute, float = ratio |
-| Veto / hard-policy red lines bolted on with extra ifs | `Vote(..., veto=True)` from any voter blocks approval |
-| Weighting senior voters means rewriting the aggregator | `function_voter("senior", fn, weight=2.0)` |
-| Audit log is a `print()` you forgot to wire to a file | `JsonMeetingStore("meetings.jsonl")` — every decision persisted |
-| One flaky LLM call crashes the whole pipeline | Exceptions are captured as `approve=False, score=0` (or `strict=True` to re-raise) |
-
-## Why a separate framework
-
-Multi-LLM ensembles and human-AI review boards keep getting re-implemented inside each project (trading bots, moderation pipelines, code review tools, agent routers). Each implementation tangles together:
-
-- **What** is being decided (the proposal shape)
-- **Who** votes (the voters)
-- **How** the votes are combined (threshold, weights, veto)
-- **Where** the audit log lives
-
-`ai-council` separates the four. You bring the voters and the proposal; the framework owns the aggregation and the audit hand-off.
+The library separates four concerns that are usually tangled together: what is being decided, who votes, how votes combine (threshold / weights / veto), and where the audit log lives.
 
 ## Install
 
@@ -201,20 +178,6 @@ Not a fit:
 ## Contributing
 
 Issues and PRs welcome. See pinned `help wanted` issues for low-effort first contributions: a vendored LLM-voter helper, additional `MeetingStore` backends (SQLite, Postgres), or a new domain example.
-
-## Sibling projects
-
-Other small, single-author harnesses I publish under [@lfzds4399-cpu](https://github.com/lfzds4399-cpu) — same MIT, same opinionated taste:
-
-| Repo | One line |
-|---|---|
-| [**harness-engineering**](https://github.com/lfzds4399-cpu/harness-engineering) | The pattern (not a framework) that ai-council drops into as a validator stage — agents + validators + manifest, validated across 6+ projects |
-| [**claude-screen-mcp**](https://github.com/lfzds4399-cpu/claude-screen-mcp) | MCP server letting Claude see your screen (Windows + macOS + Linux) — OCR + smart vision-diff |
-| [**domain-harness**](https://github.com/lfzds4399-cpu/domain-harness) | Real-world consumer: every shortlisted domain is judged by a Claude + DeepSeek council before any registrar API is called |
-| [**methods-harness**](https://github.com/lfzds4399-cpu/methods-harness) | SymPy-verified bilingual lesson pipeline for high-school calculus — same harness pattern |
-| [**voice2ai**](https://github.com/lfzds4399-cpu/voice2ai) | Hands-free dictation for Windows — push-to-talk, 4 STT providers, 10+ chat apps |
-
-If ai-council is useful, ⭐ the repo — it's the cheapest signal and it actually moves the needle.
 
 ## License
 
