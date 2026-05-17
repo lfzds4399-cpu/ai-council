@@ -1,8 +1,8 @@
 """Vote / Decision data classes.
 
-These are the value types passed between voters and the council. They are
-plain dataclasses — no behaviour — so they serialise cleanly and can be
-inspected from tests, logs, or persisted meeting records.
+Value types passed between voters and the council. Plain frozen dataclasses
+so they serialise cleanly and can be inspected from tests, logs, or
+persisted meeting records.
 """
 from __future__ import annotations
 

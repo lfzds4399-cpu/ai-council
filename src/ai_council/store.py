@@ -1,8 +1,8 @@
 """Persistence backends for meeting records.
 
-The council can optionally hand off each :class:`Decision` to a
+The council optionally hands off each :class:`Decision` to a
 :class:`MeetingStore` so a downstream system (UI, audit log, replay test)
-can re-load history. Default is :class:`NullMeetingStore` — no-op, no I/O.
+can re-load history. Default is :class:`NullMeetingStore`.
 """
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ class MeetingStore(Protocol):
 
 
 class NullMeetingStore:
-    """No-op store. Default — the council stays pure unless you opt into I/O."""
+    """No-op store. The council performs no I/O unless another store is set."""
 
     def append(self, decision: Decision) -> None:  # noqa: D401, ARG002
         return None
@@ -34,9 +34,8 @@ class NullMeetingStore:
 class JsonMeetingStore:
     """Append decisions to a JSON file, keep at most ``max_entries``.
 
-    The file is rewritten in full on each append. That is fine for the audit
-    use case (low-frequency, human-inspectable). Swap in a database-backed
-    store if you need write throughput.
+    The file is rewritten in full on each append. Suitable for low-frequency
+    audit logs; swap in a database-backed store for higher write throughput.
     """
 
     def __init__(self, path: str | Path, *, max_entries: int = 200) -> None:

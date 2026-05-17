@@ -1,8 +1,8 @@
 """Voter protocol + helpers.
 
 A voter is anything with a ``name``, a ``weight``, and a ``vote(...)`` method.
-The framework deliberately does not subclass voters — duck-typing keeps
-adapters cheap (wrap an LLM call, wrap a regex check, wrap a SQL query).
+Duck typing via :class:`Voter` lets adapters wrap an LLM call, a regex check,
+or a SQL query without subclassing.
 """
 from __future__ import annotations
 
@@ -21,9 +21,9 @@ VoterFn = Callable[[dict[str, Any], dict[str, Any], dict[str, Vote]], Vote]
 class Voter(Protocol):
     """Anything that can emit a Vote on a proposal.
 
-    Implementations are typically a small dataclass holding any model client,
-    threshold, or prompt template the voter needs. The protocol is
-    runtime-checkable so the council can validate the input list cheaply.
+    Implementations are typically a small dataclass holding the model client,
+    threshold, or prompt template the voter needs. Marked runtime-checkable
+    so the council can validate the input list with ``isinstance``.
     """
 
     name: str

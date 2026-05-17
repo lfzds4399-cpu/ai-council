@@ -13,10 +13,8 @@ Threshold semantics:
   - ``int`` (e.g. ``threshold=2``): absolute number of approvals required.
   - ``float`` in (0, 1] (e.g. ``threshold=0.6``): ratio of approvals.
 
-The council is intentionally synchronous. Voters that need network or LLM
-calls should batch / cache / parallelise inside their own ``vote`` method —
-keeping the framework single-threaded means it composes cleanly with sync
-caller code (CLIs, test suites, HTTP handlers).
+The council is synchronous. Voters that need network or LLM calls should
+batch, cache, or parallelise inside their own ``vote`` method.
 """
 from __future__ import annotations
 
@@ -104,8 +102,8 @@ class Council:
                     f"voter {voter.name!r} returned {type(v).__name__}, expected Vote"
                 )
             if v.voter != voter.name:
-                # Defensive: voters should set their own name. Patch silently
-                # rather than fail — voter authors hit this often.
+                # Voters should set their own name; patch it here rather than
+                # raise, since this is an easy mistake to make.
                 v = Vote(
                     voter=voter.name,
                     approve=v.approve,

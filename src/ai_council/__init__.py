@@ -10,9 +10,9 @@ Core surface:
     if decision.approved:
         ...
 
-A `Voter` is anything with a ``name`` and a ``vote(proposal, context, peers)`` method
-returning a ``Vote``. The framework does not care what the voter does internally
-— rule-based, LLM-backed, geometric, doesn't matter.
+A ``Voter`` is anything with a ``name`` and a ``vote(proposal, context, peers)``
+method returning a ``Vote``. Internals are unconstrained — rule-based,
+LLM-backed, or numeric.
 """
 from __future__ import annotations
 
